@@ -22,9 +22,16 @@ const DIRECTIONS = [
 	Vector2i(-1, 0),  # West (-X)
 ]
 
+var dungeon_map: Node = null  # Set by dungeon_map.gd via _place_player or found at runtime
+
 @onready var camera: Camera3D = $Camera3D
 
 func _ready() -> void:
+	# Find the dungeon map in the scene
+	dungeon_map = get_tree().get_first_node_in_group("dungeon_map")
+	if not dungeon_map:
+		# Fallback: look for sibling named DungeonMap
+		dungeon_map = get_node_or_null("../DungeonMap")
 	_snap_to_grid()
 
 func _process(delta: float) -> void:
@@ -47,7 +54,8 @@ func _handle_input() -> void:
 
 func _try_move(dir: Vector2i) -> void:
 	var new_pos := grid_pos + dir
-	# TODO: Add wall collision checks against a tilemap/array here
+	if dungeon_map and not dungeon_map.is_walkable(new_pos):
+		return  # Blocked by wall
 	grid_pos = new_pos
 	_target_position = _grid_to_world(grid_pos)
 	_is_moving = true
