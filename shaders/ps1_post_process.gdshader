@@ -28,5 +28,5 @@ void fragment() {
 	vec3 quantized = floor((screen_color.rgb + dither_offset) * color_depth + 0.5) / color_depth;
 	quantized = clamp(quantized, 0.0, 1.0);
 
-	COLOR = vec4(quantized, screen_color.a);
+	COLOR = vec4(quantized, 1.0);
 }

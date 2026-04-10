@@ -4,7 +4,9 @@ render_mode vertex_lighting, specular_disabled;
 // PS1 Per-Model Shader: Vertex Wobble + Affine Texture Mapping
 // Apply via geometry_material_override on MeshInstance3D nodes
 
+uniform vec4 albedo_color : source_color = vec4(0.6, 0.6, 0.6, 1.0);
 uniform sampler2D albedo_texture : source_color, filter_nearest;
+uniform bool use_texture = false;
 uniform bool pixel_snap_enabled = true;
 uniform float snap_resolution = 160.0; // Smaller = more aggressive wobble
 uniform float affine_weight : hint_range(0.0, 1.0) = 1.0; // 0 = correct, 1 = full PS1 warp
@@ -41,6 +43,10 @@ void fragment() {
 	vec2 affine_uv = v_affine_uv / v_clip_w;
 	vec2 final_uv = mix(perspective_uv, affine_uv, affine_weight);
 
-	vec4 tex_color = texture(albedo_texture, final_uv);
-	ALBEDO = tex_color.rgb;
+	if (use_texture) {
+		vec4 tex_color = texture(albedo_texture, final_uv);
+		ALBEDO = tex_color.rgb * albedo_color.rgb;
+	} else {
+		ALBEDO = albedo_color.rgb;
+	}
 }

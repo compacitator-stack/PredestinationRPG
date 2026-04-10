@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://test_room_001"]
+[gd_scene load_steps=11 format=3 uid="uid://test_room_001"]
 
 [ext_resource type="Script" path="res://scripts/grid_player.gd" id="1"]
 [ext_resource type="Shader" path="res://shaders/ps1_post_process.gdshader" id="2"]
@@ -11,6 +11,8 @@ shader_parameter/dither_strength = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_walls"]
 shader = ExtResource("3")
+shader_parameter/albedo_color = Color(0.55, 0.5, 0.45, 1.0)
+shader_parameter/use_texture = false
 shader_parameter/pixel_snap_enabled = true
 shader_parameter/snap_resolution = 160.0
 shader_parameter/affine_weight = 1.0
@@ -18,15 +20,27 @@ shader_parameter/texture_tile = Vector2(1, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_floor"]
 shader = ExtResource("3")
-shader_parameter/pixel_snap_enabled = true
+shader_parameter/albedo_color = Color(0.4, 0.38, 0.35, 1.0)
+shader_parameter/use_texture = false
+shader_parameter/pixel_snap_enabled = false
 shader_parameter/snap_resolution = 160.0
 shader_parameter/affine_weight = 1.0
 shader_parameter/texture_tile = Vector2(4, 4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_wall"]
-size = Vector3(2.0, 3.0, 0.2)
-subdivide_width = 4
-subdivide_height = 4
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ceiling"]
+shader = ExtResource("3")
+shader_parameter/albedo_color = Color(0.3, 0.28, 0.25, 1.0)
+shader_parameter/use_texture = false
+shader_parameter/pixel_snap_enabled = false
+shader_parameter/snap_resolution = 160.0
+shader_parameter/affine_weight = 1.0
+shader_parameter/texture_tile = Vector2(4, 4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_long"]
+size = Vector3(8.0, 3.0, 0.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_short"]
+size = Vector3(4.0, 3.0, 0.2)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
 size = Vector2(20.0, 20.0)
@@ -53,58 +67,28 @@ mesh = SubResource("PlaneMesh_floor")
 
 [node name="Ceiling" type="MeshInstance3D" parent="Environment"]
 transform = Transform3D(1, 0, 0, 0, -1, 0, 0, 0, 1, 0, 3.0, 0)
-material_override = SubResource("ShaderMaterial_floor")
+material_override = SubResource("ShaderMaterial_ceiling")
 mesh = SubResource("PlaneMesh_floor")
 
-[node name="WallNorth1" type="MeshInstance3D" parent="Environment"]
+[node name="WallNorth" type="MeshInstance3D" parent="Environment"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -2.0)
 material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
+mesh = SubResource("BoxMesh_wall_long")
 
-[node name="WallNorth2" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.5, -2.0)
-material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
-
-[node name="WallNorth3" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.5, -2.0)
-material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
-
-[node name="WallSouth1" type="MeshInstance3D" parent="Environment"]
+[node name="WallSouth" type="MeshInstance3D" parent="Environment"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 2.0)
 material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
+mesh = SubResource("BoxMesh_wall_long")
 
-[node name="WallSouth2" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.5, 2.0)
-material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
-
-[node name="WallSouth3" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.5, 2.0)
-material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
-
-[node name="WallEast1" type="MeshInstance3D" parent="Environment"]
+[node name="WallEast" type="MeshInstance3D" parent="Environment"]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 4.0, 1.5, 0)
 material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
+mesh = SubResource("BoxMesh_wall_short")
 
-[node name="WallEast2" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 4.0, 1.5, -2)
-material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
-
-[node name="WallWest1" type="MeshInstance3D" parent="Environment"]
+[node name="WallWest" type="MeshInstance3D" parent="Environment"]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -4.0, 1.5, 0)
 material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
-
-[node name="WallWest2" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -4.0, 1.5, -2)
-material_override = SubResource("ShaderMaterial_walls")
-mesh = SubResource("BoxMesh_wall")
+mesh = SubResource("BoxMesh_wall_short")
 
 [node name="Pillar1" type="MeshInstance3D" parent="Environment"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.5, 0)
