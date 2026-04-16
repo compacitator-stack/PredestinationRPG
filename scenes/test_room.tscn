@@ -1,9 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://test_room_001"]
+[gd_scene load_steps=8 format=3 uid="uid://test_room_001"]
 
 [ext_resource type="Script" path="res://scripts/grid_player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/dungeon_map.gd" id="2"]
 [ext_resource type="Shader" path="res://shaders/ps1_post_process.gdshader" id="3"]
 [ext_resource type="Shader" path="res://shaders/ps1_model.gdshader" id="4"]
+[ext_resource type="Script" path="res://scripts/automap.gd" id="5"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_post"]
 shader = ExtResource("3")
@@ -12,35 +13,34 @@ shader_parameter/dither_strength = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_walls"]
 shader = ExtResource("4")
-shader_parameter/albedo_color = Color(0.55, 0.5, 0.45, 1.0)
+shader_parameter/albedo_color = Color(1.0, 1.0, 1.0, 1.0)
 shader_parameter/use_texture = false
 shader_parameter/pixel_snap_enabled = true
-shader_parameter/snap_resolution = 160.0
-shader_parameter/affine_weight = 1.0
+shader_parameter/snap_resolution = 200.0
+shader_parameter/affine_weight = 0.15
 shader_parameter/texture_tile = Vector2(1, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_floor"]
 shader = ExtResource("4")
-shader_parameter/albedo_color = Color(0.4, 0.38, 0.35, 1.0)
+shader_parameter/albedo_color = Color(1.0, 1.0, 1.0, 1.0)
 shader_parameter/use_texture = false
 shader_parameter/pixel_snap_enabled = false
-shader_parameter/snap_resolution = 160.0
-shader_parameter/affine_weight = 1.0
+shader_parameter/snap_resolution = 200.0
+shader_parameter/affine_weight = 0.15
 shader_parameter/texture_tile = Vector2(1, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ceiling"]
 shader = ExtResource("4")
-shader_parameter/albedo_color = Color(0.3, 0.28, 0.25, 1.0)
+shader_parameter/albedo_color = Color(1.0, 1.0, 1.0, 1.0)
 shader_parameter/use_texture = false
 shader_parameter/pixel_snap_enabled = false
-shader_parameter/snap_resolution = 160.0
-shader_parameter/affine_weight = 1.0
+shader_parameter/snap_resolution = 200.0
+shader_parameter/affine_weight = 0.15
 shader_parameter/texture_tile = Vector2(1, 1)
 
 [node name="TestRoom" type="Node3D"]
 
-[node name="Player" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+[node name="Player" type="Node3D" parent="." groups=["player"]]
 script = ExtResource("1")
 
 [node name="Camera3D" type="Camera3D" parent="Player"]
@@ -62,3 +62,12 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 material = SubResource("ShaderMaterial_post")
+
+[node name="Automap" type="Control" parent="."]
+script = ExtResource("5")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

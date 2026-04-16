@@ -3,9 +3,12 @@ extends Node3D
 ## First-person grid-based movement controller (Strange Journey style).
 ## Snaps to a tile grid; 90-degree turns; smooth interpolation between tiles.
 
+signal step_completed
+
 @export var tile_size: float = 2.0       # World units per grid tile
 @export var move_speed: float = 6.0      # Units/sec for interpolation
 @export var turn_speed: float = 8.0      # Radians/sec for turn interpolation
+@export var eye_height: float = 1.0      # Camera Y offset above floor
 
 var grid_pos: Vector2i = Vector2i.ZERO   # Current tile coordinate
 var facing: int = 0                      # 0=North(-Z), 1=East(+X), 2=South(+Z), 3=West(-X)
@@ -23,6 +26,7 @@ const DIRECTIONS = [
 ]
 
 var dungeon_map: Node = null  # Set by dungeon_map.gd via _place_player or found at runtime
+var battle_active: bool = false
 
 @onready var camera: Camera3D = $Camera3D
 
@@ -43,13 +47,17 @@ func _process(delta: float) -> void:
 		_handle_input()
 
 func _handle_input() -> void:
-	if Input.is_action_just_pressed("move_forward"):
+	if battle_active or GameManager._menu_open:
+		return
+	# Hold-to-repeat: is_action_pressed fires every frame the key is held,
+	# but we only act when idle (not mid-move/turn), so it auto-queues.
+	if Input.is_action_pressed("move_forward"):
 		_try_move(DIRECTIONS[facing])
-	elif Input.is_action_just_pressed("move_backward"):
+	elif Input.is_action_pressed("move_backward"):
 		_try_move(-DIRECTIONS[facing])
-	elif Input.is_action_just_pressed("turn_left"):
+	elif Input.is_action_pressed("turn_left"):
 		_turn(-1)
-	elif Input.is_action_just_pressed("turn_right"):
+	elif Input.is_action_pressed("turn_right"):
 		_turn(1)
 
 func _try_move(dir: Vector2i) -> void:
@@ -71,6 +79,7 @@ func _interpolate_move(delta: float) -> void:
 	if position.is_equal_approx(_target_position):
 		position = _target_position
 		_is_moving = false
+		step_completed.emit()
 
 func _interpolate_turn(delta: float) -> void:
 	var turn_step := turn_speed * delta
@@ -84,7 +93,7 @@ func _interpolate_turn(delta: float) -> void:
 		rotation.y += signf(diff) * turn_step
 
 func _grid_to_world(gp: Vector2i) -> Vector3:
-	return Vector3(gp.x * tile_size, 0.0, gp.y * tile_size)
+	return Vector3(gp.x * tile_size, eye_height, gp.y * tile_size)
 
 func _snap_to_grid() -> void:
 	position = _grid_to_world(grid_pos)
