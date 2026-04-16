@@ -32,6 +32,8 @@ var floor_name: String = ""
 var floor_npcs: Dictionary = {}
 var floor_boss: Dictionary = {}
 var floor_encounter_table: Array = []
+var floor_zones: Dictionary = {}     # zone code (String) -> encounter table (Array)
+var floor_zone_map: Array = []       # Array of Strings, one per row; "." = no zone
 var floor_torch_positions: Array = []
 var floor_texture_theme: Dictionary = {}
 var floor_props: Array = []
@@ -68,6 +70,8 @@ func _load_floor(index: int) -> void:
 	floor_npcs = data.get("npcs", {})
 	floor_boss = data.get("boss", {})
 	floor_encounter_table = data.get("encounter_table", [])
+	floor_zones = data.get("zones", {})
+	floor_zone_map = data.get("zone_map", [])
 	floor_torch_positions = data.get("torch_positions", [])
 	floor_texture_theme = data.get("texture_theme", {})
 	floor_props = data.get("props", [])
@@ -152,6 +156,32 @@ func get_tile_type(pos: Vector2i) -> int:
 	if pos.x < 0 or pos.x >= map_width or pos.y < 0 or pos.y >= map_height:
 		return 1  # Out of bounds = wall
 	return map_data[pos.y][pos.x]
+
+
+func get_zone_code(pos: Vector2i) -> String:
+	## Returns zone single-char code for a tile, or "" if no zone defined.
+	if pos.y < 0 or pos.y >= floor_zone_map.size():
+		return ""
+	var row: String = floor_zone_map[pos.y]
+	if pos.x < 0 or pos.x >= row.length():
+		return ""
+	var c: String = row.substr(pos.x, 1)
+	return "" if c == "." else c
+
+
+func get_zone_encounter_table(pos: Vector2i) -> Array:
+	## Returns the encounter table for the tile's zone, falling back to the floor default.
+	## Returns an empty array if the tile is in a declared safe zone (e.g. altar room).
+	var code := get_zone_code(pos)
+	if code != "" and floor_zones.has(code):
+		return floor_zones[code]
+	return floor_encounter_table
+
+
+func is_safe_zone(pos: Vector2i) -> bool:
+	## True if the tile is in a zone explicitly declared with an empty encounter table.
+	var code := get_zone_code(pos)
+	return code != "" and floor_zones.has(code) and (floor_zones[code] as Array).is_empty()
 
 
 func _create_meshes() -> void:

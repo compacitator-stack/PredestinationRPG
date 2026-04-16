@@ -105,6 +105,65 @@ func _floor_1_shattered_cathedral() -> Dictionary:
 			{ "template": "cecil", "weight": 5 },
 			{ "template": "nisoro", "weight": 5 },
 		],
+		# Zone-based encounter tables — each sub-area of the map rolls from its own pool.
+		# Empty table = safe zone (no encounters). Missing zone = fallback to floor encounter_table above.
+		# zone_map below (one string per row, one char per tile) assigns each tile a zone code.
+		"zones": {
+			"V": [  # Vestibule — entrance, tutorial-light
+				{ "template": "will_o_wisp", "weight": 40 },
+				{ "template": "shade", "weight": 25 },
+			],
+			"N": [  # Nave — main corridor, wisp-haunted
+				{ "template": "will_o_wisp", "weight": 35 },
+				{ "template": "shade", "weight": 25 },
+				{ "template": "cecil", "weight": 15 },
+			],
+			"A": [],  # Altar room — sanctuary, safe zone (no encounters)
+			"T": [  # Threshold — Ezekiel's gate, golem guardians
+				{ "template": "stone_golem", "weight": 40 },
+				{ "template": "dark_acolyte", "weight": 25 },
+				{ "template": "shade", "weight": 15 },
+			],
+			"B": [],  # Boss chamber — scripted fight only, no randoms
+			"W": [  # West chapel — defiled, corrupt presence
+				{ "template": "dark_acolyte", "weight": 30 },
+				{ "template": "nisoro", "weight": 25 },
+				{ "template": "shade", "weight": 20 },
+			],
+			"E": [  # East cloister — Seer's refuge, rare and thematic
+				{ "template": "cecil", "weight": 35 },
+				{ "template": "will_o_wisp", "weight": 20 },
+			],
+			"C": [  # Hidden crypt — Piper's Boot territory
+				{ "template": "pipers_boot", "weight": 40 },
+				{ "template": "dark_acolyte", "weight": 25 },
+				{ "template": "nisoro", "weight": 20 },
+			],
+		},
+		# Parallel to map rows — one character per tile. "." = wall / no zone.
+		# Codes: V=vestibule, N=nave, A=altar, T=threshold, B=boss, W=west chapel, E=east cloister, C=crypt
+		"zone_map": [
+			"......................",  # row 0
+			".........BBBBB........",  # row 1  stairs behind boss
+			".........BBBBB........",  # row 2  boss tile
+			".........BBBBB........",  # row 3  boss chamber
+			"..........B.B.........",  # row 4  narrow door
+			".........TTTTT........",  # row 5  threshold (Ezekiel)
+			".........TTTTT........",  # row 6
+			"..........T.T.........",  # row 7  narrow passage
+			"......AAAAAAAAAAA.....",  # row 8  altar room (safe)
+			"......W...N.N...E.....",  # row 9
+			".WWWW.W...N.N...EEEE..",  # row 10
+			".WWWWWW...N.N.....EE..",  # row 11 (Blind Seer NPC)
+			".WWWW.W...N.N...EEEE..",  # row 12
+			"......W...N.N...E.....",  # row 13
+			"......NNNNNNNNNNNCCCC.",  # row 14 nave + hidden crypt altar
+			"..........V.V.......C.",  # row 15 vestibule-nave corridor
+			"..........VVV.......C.",  # row 16
+			".........VVVVV......C.",  # row 17 (Wounded Celestialite NPC)
+			".........VVVVV........",  # row 18 spawn
+			"......................",  # row 19
+		],
 		"npcs": {
 			Vector2i(10, 17): {
 				"name": "Wounded Celestialite",

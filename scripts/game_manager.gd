@@ -90,6 +90,9 @@ func _on_player_step() -> void:
 		var tile: int = _dungeon_map.get_tile_type(_player.grid_pos)
 		if tile != 0:
 			return
+		# No encounters in declared safe zones (e.g. altar room sanctuary)
+		if _dungeon_map.is_safe_zone(_player.grid_pos):
+			return
 	_steps_to_encounter -= 1
 	if _steps_to_encounter <= 0:
 		_start_encounter()
@@ -107,10 +110,13 @@ func _start_encounter() -> void:
 		_automap.visible = false
 	AudioManager.play_battle_music()
 
-	# Use floor-specific encounter table if available
+	# Use zone-specific encounter table if the player's tile has one, else floor default
 	var table: Array = []
-	if _dungeon_map and _dungeon_map.floor_encounter_table.size() > 0:
-		table = _dungeon_map.floor_encounter_table
+	if _dungeon_map:
+		if _player:
+			table = _dungeon_map.get_zone_encounter_table(_player.grid_pos)
+		if table.is_empty() and _dungeon_map.floor_encounter_table.size() > 0:
+			table = _dungeon_map.floor_encounter_table
 	var enemies := CombatData.roll_encounter(table)
 	# Mark all encountered enemies in compendium
 	for e in enemies:
