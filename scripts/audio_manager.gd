@@ -10,6 +10,7 @@ const MUSIC_TRACKS := {
 	"battle": "res://assets/audio/music/standard_battle.ogg",
 	"boss_seraph": "res://assets/audio/music/boss_corrupted_seraph.ogg",
 	"broken_sanctuary": "res://assets/audio/music/broken_sanctuary.ogg",
+	"save_altar": "res://assets/audio/music/save_altar.ogg",
 }
 
 # --- Floor name -> music track mapping ---
@@ -136,6 +137,16 @@ func play_music_for_floor(floor_name: String) -> void:
 		play_music(track)
 	else:
 		stop_music(false)
+
+
+func play_altar_music() -> void:
+	pause_music()
+	play_music("save_altar", true)
+
+
+func stop_altar_music() -> void:
+	stop_music(false)
+	resume_music()
 
 
 func play_battle_music() -> void:

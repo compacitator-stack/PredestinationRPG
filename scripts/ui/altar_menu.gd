@@ -39,6 +39,7 @@ func _ready() -> void:
 	layer = 25
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().paused = true
+	AudioManager.play_altar_music()
 	_build_ui()
 	_show_main()
 
@@ -293,5 +294,6 @@ func _on_fusion_closed() -> void:
 
 func _close() -> void:
 	get_tree().paused = false
+	AudioManager.stop_altar_music()
 	closed.emit()
 	queue_free()
