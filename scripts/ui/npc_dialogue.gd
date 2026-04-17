@@ -6,7 +6,10 @@ extends CanvasLayer
 signal closed
 
 var npc_name: String = "???"
-var dialogue_lines: Array = []  # Array of { "text": String }
+# Array of { "text": String, "kind": String (optional) }
+# kind = "system" renders as a centered, all-caps game annotation (no speaker),
+# distinct from diegetic character speech. Anything else / omitted = dialogue.
+var dialogue_lines: Array = []
 
 var _current_line: int = 0
 var _text_label: Label = null
@@ -65,9 +68,24 @@ func _show_line() -> void:
 	if _current_line >= dialogue_lines.size():
 		_close()
 		return
-	_name_label.text = npc_name
 	var line_data: Dictionary = dialogue_lines[_current_line]
-	_text_label.text = line_data.get("text", "")
+	var is_system := String(line_data.get("kind", "")) == "system"
+
+	if is_system:
+		_name_label.visible = false
+		_text_label.text = String(line_data.get("text", "")).to_upper()
+		_text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_text_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_text_label.add_theme_color_override("font_color", UITheme.TITLE)
+		_text_label.add_theme_font_size_override("font_size", 16)
+	else:
+		_name_label.visible = true
+		_name_label.text = npc_name
+		_text_label.text = line_data.get("text", "")
+		_text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_text_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		_text_label.add_theme_color_override("font_color", UITheme.TEXT)
+		_text_label.add_theme_font_size_override("font_size", 13)
 
 	if _current_line < dialogue_lines.size() - 1:
 		_prompt_label.text = "[E / Space] Next"

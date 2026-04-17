@@ -175,8 +175,11 @@ func _floor_1_shattered_cathedral() -> Dictionary:
 					{ "text": "\"The Corruption leaks upward from the Heap.\nEven this cathedral — once the heart of the\nFirmament — has begun to crack.\"" },
 					{ "text": "\"Your Soul Ledger... guard it well. It records\nwhat words cannot: the state of your soul.\nCorruption leaves marks that do not fade.\"" },
 					{ "text": "\"The guardian of this cathedral... it was one\nof us. A Seraph. Taken by the Corruption.\nI grieve for it still.\"" },
-					{ "text": "\"Press ESCAPE to open your Soul Ledger.\nPress E at golden altars to save and set Decrees.\nTalk to creatures in battle — not all wish to fight.\"" },
+					{ "text": "\"You have already seen what is ahead.\nYour actions have been decided for you.\"" },
 					{ "text": "\"Go now, Seer. What was ordained will unfold.\nWhether you accept it... that is your burden.\"" },
+					{ "text": "Received — Gallant Decree.", "kind": "system" },
+					{ "text": "Press Escape to open Soul Ledger.", "kind": "system" },
+					{ "text": "Press E at golden altars to save\nand set Decrees.", "kind": "system" },
 				],
 			},
 			Vector2i(19, 11): {

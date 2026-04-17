@@ -15,6 +15,7 @@ const SoulInvestScript = preload("res://scripts/ui/soul_invest.gd")
 var party: Array = []  # Active party (up to 4)
 var reserve: Array = []  # Reserve creatures (up to 8)
 var compendium_seen: Dictionary = {}  # creature_id -> true for all encountered creatures
+var first_decree_granted: bool = false  # Granted by Wounded Celestialite on floor 1; gates encounters.
 var _player: Node = null
 var _automap: Control = null
 var _dungeon_map: Node = null
@@ -30,6 +31,11 @@ var _load_data: ConfigFile = null
 
 const MAX_ACTIVE := 4
 const MAX_RESERVE := 8
+
+# Floor 1 Wounded Celestialite — see floor_data.gd. Gates first exit from the vestibule.
+const FIRST_NPC_POS := Vector2i(10, 17)
+const FIRST_NPC_FACING_TILE := Vector2i(11, 17)  # Tile east of NPC; player faces west from here.
+const VESTIBULE_NORTH_Y := 15  # y < this = player has left the vestibule (floor 1 only).
 
 
 func _ready() -> void:
@@ -85,6 +91,14 @@ func _reset_step_counter() -> void:
 func _on_player_step() -> void:
 	if _battle_active:
 		return
+	# Floor 1 first-decree gate: if the player tries to leave the vestibule
+	# before receiving the Gallant Decree, pull them back to the Celestialite.
+	if (not first_decree_granted
+			and FloorData.current_floor == 0
+			and _player
+			and _player.grid_pos.y < VESTIBULE_NORTH_Y):
+		_force_first_npc_interaction()
+		return
 	# No random encounters on special tiles (altars, NPCs, stairs, boss)
 	if _player and _dungeon_map:
 		var tile: int = _dungeon_map.get_tile_type(_player.grid_pos)
@@ -93,9 +107,22 @@ func _on_player_step() -> void:
 		# No encounters in declared safe zones (e.g. altar room sanctuary)
 		if _dungeon_map.is_safe_zone(_player.grid_pos):
 			return
+	# No encounters at all until the first decree is granted.
+	if not first_decree_granted:
+		return
 	_steps_to_encounter -= 1
 	if _steps_to_encounter <= 0:
 		_start_encounter()
+
+
+func _force_first_npc_interaction() -> void:
+	if not _player:
+		return
+	_player.grid_pos = FIRST_NPC_FACING_TILE
+	_player.facing = 3  # West — toward the Celestialite at FIRST_NPC_POS.
+	if _player.has_method("_snap_to_grid"):
+		_player._snap_to_grid()
+	_interact_npc(FIRST_NPC_POS)
 
 
 # ==========================================================================
@@ -196,8 +223,20 @@ func _interact_npc(npc_pos: Vector2i) -> void:
 	var dlg := NpcDialogueScript.new()
 	dlg.npc_name = npc_data.get("name", "???")
 	dlg.dialogue_lines = npc_data.get("dialogue", [])
-	dlg.closed.connect(_on_menu_closed)
+	var grants_gallant := (npc_pos == FIRST_NPC_POS
+			and FloorData.current_floor == 0
+			and not first_decree_granted)
+	if grants_gallant:
+		dlg.closed.connect(_on_gallant_decree_granted)
+	else:
+		dlg.closed.connect(_on_menu_closed)
 	get_tree().root.add_child(dlg)
+
+
+func _on_gallant_decree_granted() -> void:
+	first_decree_granted = true
+	DecreeSystem.grant_gallant_decree()
+	_on_menu_closed()
 
 
 func _interact_stairs() -> void:
@@ -418,6 +457,7 @@ func save_game() -> void:
 	# Save boss defeat flags
 	var defeated_floors: Array = FloorData.boss_defeated.keys()
 	cfg.set_value("meta", "boss_defeated", defeated_floors)
+	cfg.set_value("meta", "first_decree_granted", first_decree_granted)
 
 	# Save active party
 	for i in range(party.size()):
@@ -516,6 +556,7 @@ func _apply_load_data() -> void:
 	FloorData.boss_defeated.clear()
 	for f in defeated:
 		FloorData.boss_defeated[f] = true
+	first_decree_granted = cfg.get_value("meta", "first_decree_granted", false)
 
 	# Restore active party
 	var party_count: int = cfg.get_value("meta", "party_size", 2)

@@ -69,6 +69,12 @@ func clear_decree(slot: int) -> void:
 		decrees[slot] = _empty_decree()
 
 
+func grant_gallant_decree() -> void:
+	## Flavor-named preset granted by the Wounded Celestialite on floor 1.
+	## Writes to slot 0; player can overwrite at the first altar like any decree.
+	set_decree(0, Condition.FIRST_TURN, "Seer", "Mystic Ray")
+
+
 func reset_spent() -> void:
 	for d in decrees:
 		d.spent = false
