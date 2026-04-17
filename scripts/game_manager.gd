@@ -135,6 +135,8 @@ func _start_encounter() -> void:
 		_player.battle_active = true
 	if _automap:
 		_automap.visible = false
+	# Decrees re-arm every battle — they're standing orders, not single-use.
+	DecreeSystem.reset_spent()
 	AudioManager.play_battle_music()
 
 	# Use zone-specific encounter table if the player's tile has one, else floor default
@@ -222,10 +224,18 @@ func _interact_npc(npc_pos: Vector2i) -> void:
 	_menu_open = true
 	var dlg := NpcDialogueScript.new()
 	dlg.npc_name = npc_data.get("name", "???")
-	dlg.dialogue_lines = npc_data.get("dialogue", [])
 	var grants_gallant := (npc_pos == FIRST_NPC_POS
 			and FloorData.current_floor == 0
 			and not first_decree_granted)
+	var already_granted := (npc_pos == FIRST_NPC_POS
+			and FloorData.current_floor == 0
+			and first_decree_granted)
+	if already_granted:
+		# Celestialite has already spoken her piece and delivered the Decree.
+		# On subsequent talks she has nothing left to say.
+		dlg.dialogue_lines = [{"text": "..."}]
+	else:
+		dlg.dialogue_lines = npc_data.get("dialogue", [])
 	if grants_gallant:
 		dlg.closed.connect(_on_gallant_decree_granted)
 	else:
@@ -295,6 +305,8 @@ func _start_boss_fight() -> void:
 		_player.battle_active = true
 	if _automap:
 		_automap.visible = false
+	# Decrees re-arm every battle — they're standing orders, not single-use.
+	DecreeSystem.reset_spent()
 	AudioManager.play_boss_music(creature_id)
 
 	var boss := CombatData.create_creature(creature_id)

@@ -35,14 +35,20 @@ const JINGLE_VOLUME_DB := 0.0
 
 
 func _ready() -> void:
+	# Audio must keep playing (and fade tweens must keep running) while the
+	# tree is paused — altar menu / dialogues pause the tree but still want music.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = "Master"
 	_music_player.volume_db = MUSIC_VOLUME_DB
+	_music_player.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_music_player)
 
 	_jingle_player = AudioStreamPlayer.new()
 	_jingle_player.bus = "Master"
 	_jingle_player.volume_db = JINGLE_VOLUME_DB
+	_jingle_player.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_jingle_player)
 
 
@@ -76,6 +82,7 @@ func play_music(track_name: String, fade_in: bool = true) -> void:
 		_music_player.volume_db = -40.0
 		_music_player.play()
 		_fade_tween = create_tween()
+		_fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 		_fade_tween.tween_property(_music_player, "volume_db", MUSIC_VOLUME_DB, FADE_DURATION)
 	else:
 		_music_player.volume_db = MUSIC_VOLUME_DB
@@ -91,6 +98,7 @@ func stop_music(fade_out: bool = true) -> void:
 
 	if fade_out:
 		_fade_tween = create_tween()
+		_fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 		_fade_tween.tween_property(_music_player, "volume_db", -40.0, FADE_DURATION)
 		_fade_tween.tween_callback(_music_player.stop)
 		_fade_tween.tween_callback(func() -> void: _current_track = "")

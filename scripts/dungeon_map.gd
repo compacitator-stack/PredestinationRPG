@@ -266,8 +266,15 @@ func _spawn_walls_for_tile(parent: Node3D, x: int, y: int) -> void:
 	var half := tile_size / 2.0
 	var wall_y := wall_height / 2.0
 
+	# Walls are rendered against the raw map (tile-type 1 or out-of-bounds).
+	# Do NOT use is_walkable() here — it returns false for NPC/altar/pillar
+	# tiles (they're in blocked_tiles), but those are open spaces visually,
+	# interacted with by facing. Using is_walkable() would render a
+	# "paper-thin wall" between the player and any NPC/altar tile that
+	# happened to be processed earlier in the build loop.
+
 	# North (y-1)
-	if not is_walkable(Vector2i(x, y - 1)):
+	if _is_wall_tile(x, y - 1):
 		var wall := MeshInstance3D.new()
 		wall.mesh = _wall_mesh
 		wall.material_override = wall_material
@@ -275,7 +282,7 @@ func _spawn_walls_for_tile(parent: Node3D, x: int, y: int) -> void:
 		parent.add_child(wall)
 
 	# South (y+1)
-	if not is_walkable(Vector2i(x, y + 1)):
+	if _is_wall_tile(x, y + 1):
 		var wall := MeshInstance3D.new()
 		wall.mesh = _wall_mesh
 		wall.material_override = wall_material
@@ -284,7 +291,7 @@ func _spawn_walls_for_tile(parent: Node3D, x: int, y: int) -> void:
 		parent.add_child(wall)
 
 	# West (x-1)
-	if not is_walkable(Vector2i(x - 1, y)):
+	if _is_wall_tile(x - 1, y):
 		var wall := MeshInstance3D.new()
 		wall.mesh = _wall_mesh
 		wall.material_override = wall_material
@@ -293,13 +300,19 @@ func _spawn_walls_for_tile(parent: Node3D, x: int, y: int) -> void:
 		parent.add_child(wall)
 
 	# East (x+1)
-	if not is_walkable(Vector2i(x + 1, y)):
+	if _is_wall_tile(x + 1, y):
 		var wall := MeshInstance3D.new()
 		wall.mesh = _wall_mesh
 		wall.material_override = wall_material
 		wall.position = center + Vector3(half, wall_y, 0)
 		wall.rotation_degrees.y = -90.0
 		parent.add_child(wall)
+
+
+func _is_wall_tile(x: int, y: int) -> bool:
+	if x < 0 or x >= map_width or y < 0 or y >= map_height:
+		return true
+	return not (map_data[y][x] in FloorData.WALKABLE_TILES)
 
 
 func _spawn_altar_marker(parent: Node3D, x: int, y: int) -> void:
