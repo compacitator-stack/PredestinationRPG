@@ -94,7 +94,10 @@ func calc_heal(caster: Combatant, skill: Dictionary, innocence_bonus: bool) -> i
 # --- Skill Factory ---
 
 func make_skill(skill_name: String, element: int, power: float, sp_cost: int,
-		is_magical: bool = false, is_heal: bool = false) -> Dictionary:
+		is_magical: bool = false, is_heal: bool = false,
+		posture_dmg: float = 0.3, resolve_dmg: int = 0,
+		cooldown: int = 0, trigger: String = "always",
+		tags_applied: Array = [], tags_consumed: Array = []) -> Dictionary:
 	return {
 		"name": skill_name,
 		"element": element,
@@ -102,6 +105,13 @@ func make_skill(skill_name: String, element: int, power: float, sp_cost: int,
 		"sp_cost": sp_cost,
 		"is_magical": is_magical,
 		"is_heal": is_heal,
+		# Phase A additions — scaffolding, not yet consumed by battle logic.
+		"posture_dmg": posture_dmg,
+		"resolve_dmg": resolve_dmg,
+		"cooldown": cooldown,
+		"trigger": trigger,
+		"tags_applied": tags_applied.duplicate(),
+		"tags_consumed": tags_consumed.duplicate(),
 	}
 
 
@@ -117,6 +127,8 @@ func create_enemy(template: String) -> Combatant:
 			c.max_hp = 50; c.hp = 50
 			c.max_sp = 3; c.sp = 3
 			c.atk = 12; c.defense = 6; c.mag = 10; c.res = 8; c.spd = 9
+			c.max_posture = 15; c.posture = 15
+			c.awareness = 1; c.behavior_family = "Striker"
 			c.lore_text = "A wisp of corrupted shadow. It lurks in the cracks between realms."
 			c.skills = [
 				make_skill("Attack", Element.CORRUPT, 1.0, 0),
@@ -140,6 +152,8 @@ func create_enemy(template: String) -> Combatant:
 			c.max_hp = 30; c.hp = 30
 			c.max_sp = 6; c.sp = 6
 			c.atk = 5; c.defense = 4; c.mag = 16; c.res = 12; c.spd = 14
+			c.max_posture = 9; c.posture = 9
+			c.awareness = 2; c.behavior_family = "Striker"
 			c.lore_text = "A fragment of a Seer's abandoned vision. It flickers with lost knowledge."
 			c.skills = [
 				make_skill("Mystic Ray", Element.MYSTIC, 1.5, 2, true),
@@ -175,6 +189,10 @@ func create_party() -> Array:
 	seer.max_hp = 100; seer.hp = 100
 	seer.max_sp = 10; seer.sp = 10
 	seer.atk = 12; seer.defense = 10; seer.mag = 15; seer.res = 12; seer.spd = 10
+	# Phase A — Innocent-path party member. Medium Posture, high Resolve, high Awareness.
+	seer.max_posture = 50; seer.posture = 50
+	seer.max_resolve = 100; seer.resolve = 100
+	seer.awareness = 3
 	seer.is_player_controlled = true
 	seer.lore_text = "The player character. A young Seer drawn to the fracture in the Firmament."
 	seer.skills = [
@@ -192,6 +210,10 @@ func create_party() -> Array:
 	seraph.max_hp = 80; seraph.hp = 80
 	seraph.max_sp = 8; seraph.sp = 8
 	seraph.atk = 8; seraph.defense = 8; seraph.mag = 14; seraph.res = 16; seraph.spd = 11
+	# Phase A — Innocent Celestialite. Medium Posture, high Resolve (very resistant to drain).
+	seraph.max_posture = 40; seraph.posture = 40
+	seraph.max_resolve = 80; seraph.resolve = 80
+	seraph.awareness = 1
 	seraph.is_player_controlled = true
 	seraph.lore_text = "A Celestialite companion who chose to descend with the Seer."
 	seraph.skills = [
@@ -253,6 +275,9 @@ var CREATURE_DB := {
 		"name": "Piper's Boot", "race": Race.BEAST, "element": Element.FERAL,
 		"tier": Tier.TRASH, "card_game_ref": "Piper's Boot",
 		"hp": 45, "sp": 2, "atk": 8, "defense": 6, "mag": 5, "res": 5, "spd": 5,
+		# Phase A — MVP Striker stats
+		"posture": 13, "resolve": 0, "threat": 100, "awareness": 1,
+		"behavior_family": "Striker",
 		"skills": [["Bite", Element.FERAL, 1.0, 0, false, false],
 				   ["Growl", Element.FERAL, 0.8, 0, false, false]],
 		"ai_type": "aggressive", "recruitable": true,
@@ -346,6 +371,9 @@ var CREATURE_DB := {
 		"name": "Shade", "race": Race.DARKNESS, "element": Element.CORRUPT,
 		"tier": Tier.TRASH, "card_game_ref": "",
 		"hp": 50, "sp": 3, "atk": 12, "defense": 6, "mag": 10, "res": 8, "spd": 9,
+		# Phase A — MVP Striker stats
+		"posture": 15, "resolve": 0, "threat": 100, "awareness": 1,
+		"behavior_family": "Striker",
 		"skills": [["Attack", Element.CORRUPT, 1.0, 0, false, false],
 				   ["Shadow Bolt", Element.CORRUPT, 1.5, 3, true, false]],
 		"ai_type": "aggressive", "recruitable": true,
@@ -363,6 +391,9 @@ var CREATURE_DB := {
 		"name": "Will-o-Wisp", "race": Race.SEER, "element": Element.MYSTIC,
 		"tier": Tier.TRASH, "card_game_ref": "",
 		"hp": 30, "sp": 6, "atk": 5, "defense": 4, "mag": 16, "res": 12, "spd": 14,
+		# Phase A — MVP Striker stats (MAG-based; highest SPD in MVP pool)
+		"posture": 9, "resolve": 0, "threat": 100, "awareness": 2,
+		"behavior_family": "Striker",
 		"skills": [["Mystic Ray", Element.MYSTIC, 1.5, 2, true, false],
 				   ["Attack", Element.MYSTIC, 1.0, 0, false, false]],
 		"ai_type": "aggressive", "recruitable": true,
@@ -431,6 +462,12 @@ func create_creature(creature_id: String) -> Combatant:
 	c.atk = data.atk; c.defense = data.defense
 	c.mag = data.mag; c.res = data.res; c.spd = data.spd
 	c.ai_type = data.get("ai_type", "aggressive")
+	# Phase A — new fields with safe defaults for unstatted creatures.
+	c.max_posture = data.get("posture", 0); c.posture = c.max_posture
+	c.max_resolve = data.get("resolve", 0); c.resolve = c.max_resolve
+	c.threat = data.get("threat", 100)
+	c.awareness = data.get("awareness", 0)
+	c.behavior_family = data.get("behavior_family", "")
 
 	c.skills.clear()
 	for s_arr in data.skills:

@@ -22,6 +22,17 @@ var mag: int = 1
 var res: int = 1
 var spd: int = 1
 
+# Phase A stat additions — scaffolding only, no behavior applied yet.
+# 0 max = "system inactive for this combatant" (preserves legacy behavior).
+var max_posture: int = 0
+var posture: int = 0
+var max_resolve: int = 0
+var resolve: int = 0
+var threat: int = 100
+var awareness: int = 0
+var behavior_family: String = ""  # "Striker" | "Warden" | "Ritualist" | "Bulwark" | "" (legacy)
+var is_posture_broken: bool = false
+
 # Soul Investment tracking — how many points invested per stat
 var invested: Dictionary = { "hp": 0, "atk": 0, "defense": 0, "mag": 0, "res": 0, "spd": 0 }
 
@@ -30,7 +41,7 @@ var is_player_controlled: bool = false
 var is_corrupted: bool = false
 var is_guarding: bool = false
 var corrupt_boost_active: bool = false
-var ai_type: String = "aggressive"  # aggressive, support
+var ai_type: String = "aggressive"  # aggressive, support (legacy; superseded by behavior_family)
 var is_recruitable: bool = true  # Boss/superboss = false
 
 
@@ -75,6 +86,12 @@ func duplicate_combatant() -> Combatant:
 	c.max_hp = max_hp; c.hp = hp
 	c.max_sp = max_sp; c.sp = sp
 	c.atk = atk; c.defense = defense; c.mag = mag; c.res = res; c.spd = spd
+	c.max_posture = max_posture; c.posture = posture
+	c.max_resolve = max_resolve; c.resolve = resolve
+	c.threat = threat
+	c.awareness = awareness
+	c.behavior_family = behavior_family
+	c.is_posture_broken = is_posture_broken
 	c.invested = invested.duplicate()
 	c.skills = skills.duplicate(true)
 	c.is_player_controlled = is_player_controlled
