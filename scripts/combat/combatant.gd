@@ -32,6 +32,11 @@ var threat: int = 100
 var awareness: int = 0
 var behavior_family: String = ""  # "Striker" | "Warden" | "Ritualist" | "Bulwark" | "" (legacy)
 var is_posture_broken: bool = false
+# Tracks damage between the combatant's own turns (for Posture regen gate).
+var took_damage_since_last_turn: bool = false
+# Transient flag set by take_damage — true only immediately after the call
+# that *just* broke posture, for single-site UI reporting.
+var _last_hit_broke_posture: bool = false
 
 # Soul Investment tracking — how many points invested per stat
 var invested: Dictionary = { "hp": 0, "atk": 0, "defense": 0, "mag": 0, "res": 0, "spd": 0 }
@@ -49,12 +54,23 @@ func is_alive() -> bool:
 	return hp > 0
 
 
-func take_damage(amount: int) -> int:
+func take_damage(amount: int, posture_dmg_amount: int = 0) -> int:
+	_last_hit_broke_posture = false
 	var actual := amount
 	if is_guarding:
 		actual = maxi(1, int(float(amount) * 0.5))
 	hp = maxi(0, hp - actual)
+	took_damage_since_last_turn = true
+	if max_posture > 0 and posture_dmg_amount > 0 and not is_posture_broken:
+		posture = maxi(0, posture - posture_dmg_amount)
+		if posture == 0:
+			is_posture_broken = true
+			_last_hit_broke_posture = true
 	return actual
+
+
+func just_broke_posture() -> bool:
+	return _last_hit_broke_posture
 
 
 func heal_hp(amount: int) -> int:

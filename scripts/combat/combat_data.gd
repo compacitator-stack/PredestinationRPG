@@ -81,7 +81,9 @@ func calc_damage(attacker: Combatant, skill: Dictionary, defender: Combatant) ->
 	var raw: float = float(atk_stat) * float(skill.power) / def_factor * 10.0
 	var type_mult := get_effectiveness(skill.element, defender.element)
 	var variance := randf_range(0.9, 1.1)
-	return maxi(1, int(raw * type_mult * variance))
+	# Posture-break window: +50% incoming damage while broken.
+	var broken_mult := 1.5 if defender.is_posture_broken else 1.0
+	return maxi(1, int(raw * type_mult * variance * broken_mult))
 
 
 func calc_heal(caster: Combatant, skill: Dictionary, innocence_bonus: bool) -> int:

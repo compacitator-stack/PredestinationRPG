@@ -208,6 +208,13 @@ func _build_enemy_display() -> void:
 			"%d/%d" % [e.hp, e.max_hp], 10, UITheme.TEXT_DIM)
 		ui["hp_text"].horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
+		# Posture bar (only for combatants with Posture system active)
+		if e.max_posture > 0:
+			ui["posture_bg"] = _make_rect(
+				Vector2(cx - 40, 158), Vector2(80, 4), Color(0.15, 0.1, 0.05))
+			ui["posture_fill"] = _make_rect(
+				Vector2(cx - 40, 158), Vector2(80, 4), Color(0.85, 0.7, 0.25))
+
 		ui["center_x"] = cx
 		_enemy_ui.append(ui)
 
@@ -238,6 +245,15 @@ func _build_party_display() -> void:
 		ui["sp_text"] = _make_label(
 			Vector2(PARTY_X + SP_BAR_W + 42, y + 33), Vector2(80, 14),
 			"%d/%d" % [c.sp, c.max_sp], 10, UITheme.TEXT_DIM)
+
+		# Posture row (only for combatants with Posture system active)
+		if c.max_posture > 0:
+			_make_label(Vector2(PARTY_X + 10, y + 49), Vector2(25, 12),
+				"PO", 9, Color(0.85, 0.7, 0.25))
+			ui["posture_bg"] = _make_rect(
+				Vector2(PARTY_X + 38, y + 51), Vector2(HP_BAR_W, 6), Color(0.15, 0.1, 0.05))
+			ui["posture_fill"] = _make_rect(
+				Vector2(PARTY_X + 38, y + 51), Vector2(HP_BAR_W, 6), Color(0.85, 0.7, 0.25))
 
 		ui["y_pos"] = y
 		_party_ui.append(ui)
@@ -368,6 +384,24 @@ func _advance_turn() -> void:
 
 	# Reset guard at start of own turn
 	actor.is_guarding = false
+
+	# Posture: if broken, skip this turn (stagger). Restore posture + clear break.
+	if actor.is_posture_broken:
+		actor.is_posture_broken = false
+		actor.posture = actor.max_posture
+		actor.took_damage_since_last_turn = false
+		_show_message(actor.display_name + " is staggered!", Color(1.0, 0.7, 0.2))
+		_update_all_bars()
+		state = State.EXECUTING
+		_was_enemy_action = not actor.is_player_controlled
+		exec_timer = 0.9
+		return
+
+	# Posture regen: at own turn start, if no damage taken since last turn, restore 20%.
+	if actor.max_posture > 0 and not actor.took_damage_since_last_turn and actor.posture < actor.max_posture:
+		var regen := maxi(1, int(float(actor.max_posture) * 0.2))
+		actor.posture = mini(actor.max_posture, actor.posture + regen)
+	actor.took_damage_since_last_turn = false
 
 	if actor.is_player_controlled:
 		_start_player_turn()
@@ -700,7 +734,8 @@ func _execute_player_action(target: Combatant) -> void:
 				atk_skill.power *= 1.5
 				actor.corrupt_boost_active = false
 			var damage := CombatData.calc_damage(actor, atk_skill, target)
-			var actual := target.take_damage(damage)
+			var p_hit := int(float(damage) * float(atk_skill.get("posture_dmg", 0.3)))
+			var actual := target.take_damage(damage, p_hit)
 			var is_weak := CombatData.is_weakness(actor.element, target.element)
 			var is_res := CombatData.is_resist(actor.element, target.element)
 			if is_weak:
@@ -711,6 +746,8 @@ func _execute_player_action(target: Combatant) -> void:
 			else:
 				_show_sub_message(actor.display_name + " attacks!")
 			_show_damage_on_enemy(target, actual, is_weak)
+			if target.just_broke_posture():
+				_show_message("POSTURE BROKEN!", Color(1.0, 0.7, 0.2))
 			_update_all_bars()
 			exec_timer = 1.2
 
@@ -728,7 +765,8 @@ func _execute_player_action(target: Combatant) -> void:
 					skill.power *= 1.5
 					actor.corrupt_boost_active = false
 				var damage := CombatData.calc_damage(actor, skill, target)
-				var actual := target.take_damage(damage)
+				var p_hit := int(float(damage) * float(skill.get("posture_dmg", 0.3)))
+				var actual := target.take_damage(damage, p_hit)
 				var is_weak := CombatData.is_weakness(skill.element, target.element)
 				var is_res := CombatData.is_resist(skill.element, target.element)
 				if is_weak:
@@ -739,6 +777,8 @@ func _execute_player_action(target: Combatant) -> void:
 				else:
 					_show_sub_message(actor.display_name + " uses " + skill.name + "!")
 				_show_damage_on_enemy(target, actual, is_weak)
+				if target.just_broke_posture():
+					_show_message("POSTURE BROKEN!", Color(1.0, 0.7, 0.2))
 			_update_all_bars()
 			exec_timer = 1.2
 
@@ -841,12 +881,15 @@ func _execute_enemy_action() -> void:
 			var damage := CombatData.calc_damage(actor, skill, target)
 			if target.is_guarding and target.is_player_controlled and party_innocent:
 				damage = maxi(1, int(float(damage) * 0.75))
-			var actual := target.take_damage(damage)
+			var p_hit := int(float(damage) * float(skill.get("posture_dmg", 0.3)))
+			var actual := target.take_damage(damage, p_hit)
 			var is_weak := CombatData.is_weakness(skill.element, target.element)
 			if is_weak:
 				actor.restore_sp(1)
 			_show_damage_on_party(target, actual, is_weak)
 			_show_sub_message(actor.display_name + " uses " + skill.name + "!")
+			if target.just_broke_posture():
+				_show_message("POSTURE BROKEN!", Color(1.0, 0.7, 0.2))
 			_update_all_bars()
 			exec_timer = 1.2
 			return
@@ -882,12 +925,15 @@ func _execute_enemy_action() -> void:
 		# Innocence guard bonus
 		if target.is_guarding and target.is_player_controlled and party_innocent:
 			damage = maxi(1, int(float(damage) * 0.75))
-		var actual := target.take_damage(damage)
+		var p_hit := int(float(damage) * float(skill.get("posture_dmg", 0.3)))
+		var actual := target.take_damage(damage, p_hit)
 		var is_weak := CombatData.is_weakness(skill.element, target.element)
 		if is_weak:
 			actor.restore_sp(1)
 		_show_damage_on_party(target, actual, is_weak)
 		_show_sub_message(actor.display_name + " uses " + skill.name + "!")
+		if target.just_broke_posture():
+			_show_message("POSTURE BROKEN!", Color(1.0, 0.7, 0.2))
 		_update_all_bars()
 	else:
 		# Basic attack (0-cost skill or fallback)
@@ -903,12 +949,15 @@ func _execute_enemy_action() -> void:
 		var damage := CombatData.calc_damage(actor, atk_skill, target)
 		if target.is_guarding and target.is_player_controlled and party_innocent:
 			damage = maxi(1, int(float(damage) * 0.75))
-		var actual := target.take_damage(damage)
+		var p_hit := int(float(damage) * float(atk_skill.get("posture_dmg", 0.3)))
+		var actual := target.take_damage(damage, p_hit)
 		var is_weak := CombatData.is_weakness(atk_skill.element, target.element)
 		if is_weak:
 			actor.restore_sp(1)
 		_show_damage_on_party(target, actual, is_weak)
 		_show_sub_message(actor.display_name + " attacks " + target.display_name + "!")
+		if target.just_broke_posture():
+			_show_message("POSTURE BROKEN!", Color(1.0, 0.7, 0.2))
 		_update_all_bars()
 
 	exec_timer = 1.2
@@ -932,6 +981,11 @@ func _update_enemy_bars() -> void:
 		var ratio := clampf(float(e.hp) / maxf(1.0, float(e.max_hp)), 0.0, 1.0)
 		ui["hp_fill"].size.x = 80.0 * ratio
 		ui["hp_text"].text = "%d/%d" % [e.hp, e.max_hp]
+		if e.max_posture > 0 and ui.has("posture_fill"):
+			var p_ratio := clampf(float(e.posture) / maxf(1.0, float(e.max_posture)), 0.0, 1.0)
+			ui["posture_fill"].size.x = 80.0 * p_ratio
+			ui["posture_fill"].color = (
+				Color(1.0, 0.3, 0.1) if e.is_posture_broken else Color(0.85, 0.7, 0.25))
 		if not e.is_alive():
 			ui["sprite"].modulate = Color(0.3, 0.3, 0.3, 0.4)
 			ui["name_lbl"].modulate = Color(0.5, 0.5, 0.5, 0.5)
@@ -959,6 +1013,12 @@ func _update_party_bars() -> void:
 			ui["hp_fill"].color = Color(0.85, 0.75, 0.2)
 		else:
 			ui["hp_fill"].color = UITheme.HP_RED
+
+		if c.max_posture > 0 and ui.has("posture_fill"):
+			var p_ratio := clampf(float(c.posture) / maxf(1.0, float(c.max_posture)), 0.0, 1.0)
+			ui["posture_fill"].size.x = HP_BAR_W * p_ratio
+			ui["posture_fill"].color = (
+				Color(1.0, 0.3, 0.1) if c.is_posture_broken else Color(0.85, 0.7, 0.25))
 
 
 func _highlight_active_party_member() -> void:
@@ -1202,12 +1262,15 @@ func _fire_next_decree() -> void:
 			return
 		var target: Combatant = alive_enemies[randi() % alive_enemies.size()]
 		var damage: int = CombatData.calc_damage(member, skill, target)
-		var actual: int = target.take_damage(damage)
+		var p_hit: int = int(float(damage) * float(skill.get("posture_dmg", 0.3)))
+		var actual: int = target.take_damage(damage, p_hit)
 		var is_weak: bool = CombatData.is_weakness(int(skill.element), target.element)
 		if is_weak:
 			member.restore_sp(1)
 		_show_damage_on_enemy(target, actual, is_weak)
 		_show_sub_message("Decree: " + member.display_name + " uses " + String(skill.name) + "!")
+		if target.just_broke_posture():
+			_show_message("POSTURE BROKEN!", Color(1.0, 0.7, 0.2))
 
 	_show_message("DECREE FULFILLED!", Color(0.9, 0.8, 0.3))
 	DecreeSystem.mark_spent(slot)
