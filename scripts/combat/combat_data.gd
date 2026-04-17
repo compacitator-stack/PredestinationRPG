@@ -271,6 +271,19 @@ func _weighted_pick(table: Array) -> String:
 
 ## All prototype creatures. Each entry defines a template that create_creature() builds from.
 var CREATURE_DB := {
+	"feral_hound": {
+		"name": "Feral Hound", "race": Race.BEAST, "element": Element.FERAL,
+		"tier": Tier.COMMON, "card_game_ref": "Feral Hound",
+		"hp": 65, "sp": 3, "atk": 20, "defense": 8, "mag": 5, "res": 7, "spd": 13,
+		# Phase A — Common-tier Striker. Brittle glass cannon; opens turn 1 with a big hit.
+		"posture": 18, "resolve": 0, "threat": 110, "awareness": 1,
+		"behavior_family": "Striker",
+		"skills": [["Rending Bite", Element.FERAL, 1.3, 0, false, false],
+				   ["Feral Strike", Element.FERAL, 1.2, 2, false, false],
+				   ["Quick Dash", Element.FERAL, 1.0, 1, false, false]],
+		"ai_type": "aggressive", "recruitable": true,
+		"lore": "A lean predator from the wilds beyond the Cathedral. It strikes once, hard — before you know it is there.",
+	},
 	"pipers_boot": {
 		"name": "Piper's Boot", "race": Race.BEAST, "element": Element.FERAL,
 		"tier": Tier.TRASH, "card_game_ref": "Piper's Boot",
